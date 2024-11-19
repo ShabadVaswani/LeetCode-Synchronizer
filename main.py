@@ -109,9 +109,9 @@ def sync_github(commits, submissions):
                 continue
 
             # Handle Python submissions
-            if submission["language"] == "Python":
+            if submission["language"] in ["Python", "Python3"]:
                 ext = "py"
-
+                
             # Handle other supported languages
             elif submission["language"] == "C++":
                 ext = "cpp"
