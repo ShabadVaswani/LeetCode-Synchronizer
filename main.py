@@ -67,6 +67,9 @@ def scrape_leetcode():
 
 
 def update_readme(submissions):
+    print("Starting update_readme...")  # Debug statement
+    print(f"Number of submissions to process: {len(submissions)}")  # Debug statement
+    
     template = """
 # LeetCode Submissions
 
@@ -79,19 +82,40 @@ def update_readme(submissions):
 """
 
     serial_number = 1  # Initialize serial number
+    print("Initialized serial number to 1.")  # Debug statement
 
     for submission in submissions:
+        # Debug: Check the current submission being processed
+        print(f"Processing submission: {submission['id']} - {submission['title']} (Language: {submission['language']})")
+        
         # Format the problem's title with a link
         title = f"[{submission['title']}](https://leetcode.com/problems/{submission['title_slug']})"
+        print(f"Formatted title: {title}")  # Debug statement
+
         # Format skills as Markdown inline code
         skills = " ".join([f"`{skill}`" for skill in submission["skills"]])
-        # Add a row to the Markdown table
-        template += f"| {serial_number} | {str(submission['id']).zfill(4)} | {title} | {submission['difficulty']} | {skills} |\n"
-        serial_number += 1  # Increment serial number
+        print(f"Formatted skills: {skills}")  # Debug statement
 
+        # Add a row to the Markdown table
+        table_row = f"| {serial_number} | {str(submission['id']).zfill(4)} | {title} | {submission['difficulty']} | {skills} |\n"
+        print(f"Generated table row: {table_row.strip()}")  # Debug statement
+        
+        template += table_row
+        serial_number += 1  # Increment serial number
+        print(f"Incremented serial number to {serial_number}.")  # Debug statement
+
+    # Debug: Check the complete generated template before writing
+    print("Generated README template:\n")
+    print(template)
+    
     # Write the Markdown content to README.md
-    with open("README.md", "wt") as fd:
-        fd.write(template.strip())
+    try:
+        with open("README.md", "wt") as fd:
+            fd.write(template.strip())
+        print("README.md updated successfully.")  # Debug statement
+    except Exception as e:
+        print(f"Error writing README.md: {e}")  # Debug statement
+
 
 
 
