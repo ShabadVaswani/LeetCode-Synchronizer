@@ -74,20 +74,25 @@ def update_readme(submissions):
 
 ## Contents
 
-| S.No | # | Title | Difficulty | Skills |
-|------|---| ----- | ---------- | ------ |
+| S.No | #    | Title                                  | Difficulty | Skills            |
+|------|------|---------------------------------------|------------|-------------------|
 """
 
-    serial_number = 1  # Start the serial number from 1
+    serial_number = 1  # Initialize serial number
 
     for submission in submissions:
+        # Format the problem's title with a link
         title = f"[{submission['title']}](https://leetcode.com/problems/{submission['title_slug']})"
+        # Format skills as Markdown inline code
         skills = " ".join([f"`{skill}`" for skill in submission["skills"]])
+        # Add a row to the Markdown table
         template += f"| {serial_number} | {str(submission['id']).zfill(4)} | {title} | {submission['difficulty']} | {skills} |\n"
-        serial_number += 1  # Increment the serial number for the next problem
+        serial_number += 1  # Increment serial number
 
+    # Write the Markdown content to README.md
     with open("README.md", "wt") as fd:
         fd.write(template.strip())
+
 
 
 
