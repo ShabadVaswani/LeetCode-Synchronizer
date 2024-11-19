@@ -74,17 +74,21 @@ def update_readme(submissions):
 
 ## Contents
 
-| # | Title | Difficulty | Skills |
-|---| ----- | ---------- | ------ |
+| S.No | # | Title | Difficulty | Skills |
+|------|---| ----- | ---------- | ------ |
 """
+
+    serial_number = 1  # Start the serial number from 1
 
     for submission in submissions:
         title = f"[{submission['title']}](https://leetcode.com/problems/{submission['title_slug']})"
         skills = " ".join([f"`{skill}`" for skill in submission["skills"]])
-        template += f"| {str(submission['id']).zfill(4)} | {title} | {submission['difficulty']} | {skills} |\n"
+        template += f"| {serial_number} | {str(submission['id']).zfill(4)} | {title} | {submission['difficulty']} | {skills} |\n"
+        serial_number += 1  # Increment the serial number for the next problem
 
     with open("README.md", "wt") as fd:
         fd.write(template.strip())
+
 
 
 def sync_github(commits, submissions):
