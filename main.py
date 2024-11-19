@@ -108,7 +108,12 @@ def sync_github(commits, submissions):
                 print(f"Skipping Java submission: {submission['title']}")
                 continue
 
-            if submission["language"] == "C++":
+            # Handle Python submissions
+            if submission["language"] == "Python":
+                ext = "py"
+
+            # Handle other supported languages
+            elif submission["language"] == "C++":
                 ext = "cpp"
             elif submission["language"] == "MySQL":
                 ext = "sql"
@@ -157,6 +162,7 @@ def sync_github(commits, submissions):
             repo.git.push("origin")
             os.unsetenv("GIT_AUTHOR_DATE")
             os.unsetenv("GIT_COMMITTER_DATE")
+
 
 
 
