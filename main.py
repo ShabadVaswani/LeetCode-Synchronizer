@@ -1,92 +1,3 @@
-import os
-import time
-import json
-import pathlib
-import requests
-import datetime
-import email.utils
-import urllib.parse
-from git import Repo
-import leetcode_query
-
-
-def parse_git_log():
-    commits = dict()
-    for commit in Repo(os.getcwd()).iter_commits():
-        if commit.message not in commits:
-            commits[commit.message] = int(commit.committed_datetime.timestamp())
-
-    return commits
-
-
-def scrape_leetcode():
-    session = requests.Session()
-    session.cookies.set("LEETCODE_SESSION", os.environ.get("LEETCODE_SESSION"), domain="leetcode.com")
-    session.cookies.set("csrftoken", os.environ.get("LEETCODE_CSRF_TOKEN"), domain="leetcode.com")
-
-    solved_problems = list()
-    all_problems = session.get("https://leetcode.com/api/problems/all/").json()
-    for problem in all_problems["stat_status_pairs"]:
-        if problem["status"] == "ac":
-            time.sleep(1)
-
-            title_slug = problem["stat"]["question__title_slug"]
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36",
-                "Connection": "keep-alive",
-                "Content-Type": "application/json",
-                "Referer": "https://leetcode.com/problems/" + title_slug,
-            }
-
-            json_data = leetcode_query.question_detail
-            json_data["variables"]["titleSlug"] = title_slug
-            question_details = session.post("https://leetcode.com/graphql", json=json_data, headers=headers, timeout=10).json()
-
-            json_data = leetcode_query.submission_list
-            json_data["variables"]["questionSlug"] = title_slug
-            submissions = session.post("https://leetcode.com/graphql", json=json_data, headers=headers, timeout=10).json()
-
-            json_data = leetcode_query.submission_details
-            json_data["variables"]["submissionId"] = submissions["data"]["questionSubmissionList"]["submissions"][0]["id"]
-            submission_details = session.post("https://leetcode.com/graphql", json=json_data, headers=headers, timeout=10).json()
-
-            problem_info = {
-                "id": int(problem["stat"]["frontend_question_id"]),
-                "title": problem["stat"]["question__title"],
-                "title_slug": title_slug,
-                "content": question_details["data"]["question"]["content"],
-                "difficulty": question_details["data"]["question"]["difficulty"],
-                "skills": [tag["name"] for tag in question_details["data"]["question"]["topicTags"]],
-                "timestamp": int(submissions["data"]["questionSubmissionList"]["submissions"][0]["timestamp"]),
-                "language": submissions["data"]["questionSubmissionList"]["submissions"][0]["langName"],
-                "code": submission_details["data"]["submissionDetails"]["code"],
-            }
-            solved_problems.append(problem_info)
-
-    return sorted(solved_problems, key=lambda entry: entry["timestamp"])
-
-
-def update_readme(submissions):
-    template = """
-# LeetCode Submissions
-
-> Auto-generated with [LeetCode Synchronizer](https://github.com/dos-m0nk3y/LeetCode-Synchronizer)
-
-## Contents
-
-| # | Title | Difficulty | Skills |
-|---| ----- | ---------- | ------ |
-"""
-
-    for submission in submissions:
-        title = f"[{submission['title']}](https://leetcode.com/problems/{submission['title_slug']})"
-        skills = " ".join([f"`{skill}`" for skill in submission["skills"]])
-        template += f"| {str(submission['id']).zfill(4)} | {title} | {submission['difficulty']} | {skills} |\n"
-
-    with open("README.md", "wt") as fd:
-        fd.write(template.strip())
-
-
 def sync_github(commits, submissions):
     repo = Repo(os.getcwd())
     url = urllib.parse.urlparse(repo.remote("origin").url)
@@ -102,6 +13,12 @@ def sync_github(commits, submissions):
         commit_message = f"LeetCode Synchronization - {submission['title']} ({submission['language']})"
         if commit_message not in commits or commits[commit_message] < submission["timestamp"]:
             dir_name = f"{str(submission['id']).zfill(4)}-{submission['title_slug']}"
+            
+            # Skip Java submissions
+            if submission["language"] == "Java":
+                print(f"Skipping Java submission: {submission['title']}")
+                continue
+
             if submission["language"] == "C++":
                 ext = "cpp"
             elif submission["language"] == "MySQL":
@@ -109,9 +26,8 @@ def sync_github(commits, submissions):
             elif submission["language"] == "Bash":
                 ext = "sh"
             else:
+                print(f"Skipping unsupported language: {submission['language']}")
                 continue
-                raise Exception(f"Unknown language : {submission['language']}")
-                
 
             pathlib.Path(f"problems/{dir_name}").mkdir(parents=True, exist_ok=True)
             with open(f"problems/{dir_name}/{dir_name}.{ext}", "wt") as fd:
@@ -152,13 +68,3 @@ def sync_github(commits, submissions):
             repo.git.push("origin")
             os.unsetenv("GIT_AUTHOR_DATE")
             os.unsetenv("GIT_COMMITTER_DATE")
-
-
-def main():
-    commits = parse_git_log()
-    submissions = scrape_leetcode()
-    sync_github(commits, submissions)
-
-
-if __name__ == "__main__":
-    main()
