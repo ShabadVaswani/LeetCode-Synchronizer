@@ -102,6 +102,12 @@ def sync_github(commits, submissions):
         commit_message = f"LeetCode Synchronization - {submission['title']} ({submission['language']})"
         if commit_message not in commits or commits[commit_message] < submission["timestamp"]:
             dir_name = f"{str(submission['id']).zfill(4)}-{submission['title_slug']}"
+            
+            # Skip Java submissions
+            if submission["language"] == "Java":
+                print(f"Skipping Java submission: {submission['title']}")
+                continue
+
             if submission["language"] == "C++":
                 ext = "cpp"
             elif submission["language"] == "MySQL":
@@ -109,7 +115,8 @@ def sync_github(commits, submissions):
             elif submission["language"] == "Bash":
                 ext = "sh"
             else:
-                raise Exception(f"Unknown language : {submission['language']}")
+                print(f"Skipping unsupported language: {submission['language']}")
+                continue
 
             pathlib.Path(f"problems/{dir_name}").mkdir(parents=True, exist_ok=True)
             with open(f"problems/{dir_name}/{dir_name}.{ext}", "wt") as fd:
@@ -150,6 +157,7 @@ def sync_github(commits, submissions):
             repo.git.push("origin")
             os.unsetenv("GIT_AUTHOR_DATE")
             os.unsetenv("GIT_COMMITTER_DATE")
+
 
 
 def main():
